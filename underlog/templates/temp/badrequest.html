@@ -1,0 +1,58 @@
+
+
+<style>
+    
+    table {
+        width: 90%;
+        margin: 50px auto;
+        border-collapse: collapse;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 2px solid #ddd;
+    }
+    th {
+        background-color: #4CAF50;
+        color: white;
+        font-size: 18px;
+    }
+    nav {
+            background-color: #042208;
+            padding: 20px;
+            text-align: center;
+        }
+        nav,h1{
+            color: rgb(250, 246, 246);
+            font-weight: bolder;
+            font-size: 40px;
+        }
+</style>
+<nav>
+    <h1>{{ errortype }}</h1>
+</nav>
+<table>
+   
+<tr><th>Timestamp</th>
+    <th>Source</th>
+    <th>Message</th>
+</tr>
+{% for i in badrequest.itertuples %}
+<tr>
+<td>{{ i.timestamp }}</td>
+<td>{{ i.source }}</td>
+<td>{{ i.message }}</td>
+</tr>
+{% endfor %}
+</table>
+
+
+
+
+
+
+
+
+
+

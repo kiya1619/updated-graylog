@@ -1,0 +1,4 @@
+timestamp,source,message
+2024-11-27 07:13:58+00:00,hq-osm-t03,hq-osm-t03 nxlog[415474]: 2024-11-27 10:13:58 ERROR couldn't connect to tcp socket on 10.10.101.116:12229;Connection refused
+2024-11-27 07:14:00+00:00,hq-osm-t03,hq-osm-t03 nxlog[415474]: 2024-11-27 10:14:00 ERROR couldn't connect to tcp socket on 10.10.101.116:12229;Connection refused
+2024-11-27 06:12:10+00:00,hq-osm-t03,hq-osm-t03 nxlog[151009]: 2024-11-27 09:12:10 ERROR couldn't connect to tcp socket on 10.10.101.116:12229;Connection refused
