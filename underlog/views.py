@@ -8,19 +8,11 @@ import matplotlib.pyplot as plt
 import matplotlib
 from django.http import HttpResponse
 from django.core.mail import send_mail
-import smtplib
-import ssl
-from django.template.loader import render_to_string
 import requests
 from datetime import datetime
 import re
 import matplotlib.dates as mdates
-
-import ssl
 from django.core.mail.backends.smtp import EmailBackend
-
-from email.mime.text import MIMEText
-import logging
 matplotlib.use('Agg')
 csv_path = os.path.join(settings.BASE_DIR, 'underlog/static/logs/logs_come_after_every_5min.csv')
 #csv_path_met = os.path.join(settings.BASE_DIR, 'underlog/static/logs/correlated_data.xlsx')
@@ -113,8 +105,8 @@ configuration_error = {
     "Application startup error due to configuration", "Resource allocation error in configuration"
 }
 
-
-
+logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
 def logs(request):
 
@@ -123,15 +115,17 @@ def logs(request):
     logs_df['server_name'] = logs_df['source'].apply(lambda x: "Icinga Server" if "hq-osm-t03" in str(x)  
         else ("Windows Server" if "HQ-ISM-T01" in str(x)  
           else ("Graylog Server" if "hq-glg-t01" in str(x) 
+                    else ("tsegaye" if "ITSMCC_PC08" in str(x)
                       else "") 
-           ))
+           )))
 
     
     search_source = request.GET.get('source', None)
     start_date = request.GET.get('start_date', None)
     end_date = request.GET.get('end_date', None)
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce').dt.tz_localize(None)
+   
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
 
 
@@ -420,7 +414,7 @@ def errorcategory(request):
     
         
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
-    net_Err = logs_df[logs_df['error_category'] == 'NetworkError']
+
 
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
     network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
@@ -446,6 +440,7 @@ def errorcategory(request):
         # Count occurrences of each error type
         error_counts = error_logs['error_type'].value_counts()
         
+        
         return error_counts, error_logs
 
     # Call the categorize function to get the error counts and categorized logs
@@ -459,7 +454,7 @@ def errorcategory(request):
 
     top_error_messages = logs_df['message'].value_counts().head(10)
 
-
+    
     context = {
         'error_counts': error_counts,      
         'database_error_count': database_error_count,
@@ -544,15 +539,9 @@ def database(request):
     return render(request, 'temp/database.html', context)
 
 def general(request):
-
     logs_df = pd.read_csv(csv_path)
-    
-    # Ensure timestamp is properly formatted
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
-
-    if logs_df['timestamp'].isnull().any():
-        logs_df = logs_df.dropna(subset=['timestamp'])
-
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     def categorize_error(message):
         message_lower = message.lower()
         """Function to categorize error messages based on keywords."""
@@ -588,7 +577,7 @@ def auth(request):
     logs_df = pd.read_csv(csv_path)
     
     # Ensure timestamp is properly formatted
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
+    
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
@@ -740,7 +729,6 @@ def source_cat(request):
 
 def test(request):
     return render(request, 'temp/test.html')
-
 
 def is_critical(message):
     # List of critical keywords

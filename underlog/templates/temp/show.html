@@ -130,7 +130,7 @@
             <h3>Top Sources</h3>
             <img src="{% static top_sources_plot %}" alt="Top Sources Plot">
         </div>
-        
+
         <div class="image-box">
             <h3>Error Frequency</h3>
             <img src="{% static hourly_errorr %}" alt="Error Frequency">
@@ -157,14 +157,14 @@
             <h3>Top 10 Error Sources</h3>
             <img src="{% static top_error_sources %}" alt="Top Sources Plot">
         </div>
-        
+
     </div>
-    <div class="actions">
+    <!--<div class="actions">
         <a href="/criticall" class="styled-link">Critical</a>
         <a href="/high" class="styled-link">High</a>
         <a href="/medium" class="styled-link">Medium</a>
         <a href="/low" class="styled-link">Low</a>
-    </div>
+    </div> -->
 
     <table>
         <caption>Error Frequency Data</caption>
@@ -172,25 +172,20 @@
             <tr>
                 <th>Error Message</th>
                 <th>Number of Occurrences</th>
-                <th>Message</th>
+
             </tr>
         </thead>
-        
+
         <tbody>
             {% for time, count in error_frequency.items %}
             <tr>
                 <td>{{ time }}</td>
                 <td>{{ count }}</td>
-                <td>{{ message }}</td>
+                
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <div class="actions">
-        <a href="/criticall" class="styled-link">Critical</a>
-        <a href="/high" class="styled-link">High</a>
-        <a href="/medium" class="styled-link">Medium</a>
-        <a href="/low" class="styled-link">Low</a>
-    </div>
+
 </div>

@@ -17,8 +17,8 @@ password = "admin@123"  # Replace with your Graylog password
 
 params = {
     "query": "*", 
-    "range": 10000,  
-    "limit": 10000,  
+    "range": 100,  
+    "limit": '100000',  
     "fields": "timestamp,source, message"  
 }
 response = requests.get(graylog_url, params=params, auth=(username, password))
