@@ -105,6 +105,10 @@ configuration_error = {
     "Application startup error due to configuration", "Resource allocation error in configuration"
 }
 
+
+
+
+
 logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
 logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
@@ -164,14 +168,12 @@ def logs(request):
     
 def show(request):
     logs_df = pd.read_csv(csv_path) 
-
-
-    
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
-
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
+        
 #############all sources that contibute log##########3
     #error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
     top_sources = logs_df['source'].value_counts().head(10)
@@ -478,13 +480,12 @@ def errorcategory(request):
 def network(request):
 
     logs_df = pd.read_csv(csv_path)
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
-    
     if logs_df['timestamp'].isnull().any():
-       
+        print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
-
-
+    
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
     def categorize_error(message):
         message_lower = str(message).lower()  # Ensure the message is a string and convert it to lowercase
@@ -511,7 +512,8 @@ def network(request):
 
 def database(request):
     logs_df = pd.read_csv(csv_path)
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
@@ -581,7 +583,8 @@ def auth(request):
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
-
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     regex_pattern = '|'.join(map(re.escape, authentication_error))
 
     # Filter the logs where the 'message' column contains any of the database errors
@@ -607,6 +610,8 @@ def configuration(request):
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
     regex_pattern = '|'.join(map(re.escape, configuration_error))
 
@@ -632,6 +637,8 @@ def badrequest(request):
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
     if logs_df['timestamp'].isnull().any():
         logs_df = logs_df.dropna(subset=['timestamp'])
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
     badrequest = logs_df[logs_df['message'].str.contains('400 bad request', case=False, na=False)]
     cnt = len(badrequest)
