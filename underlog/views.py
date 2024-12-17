@@ -397,16 +397,17 @@ def errorcategory(request):
     # Step 2: Categorize errors
     def categorize_error(message):
         
-        message_lower = message.lower()
+        message_lower = str(message).lower()
         """Function to categorize error messages based on keywords."""
         if any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
         elif any(db_error.lower() in message_lower for db_error in authentication_error):
             return 'AuthenticationError'
-        elif any(db_error.lower() in message_lower for db_error in database_error):
-            return 'DatabaseError'
         elif any(db_error.lower() in message_lower for db_error in network_error):
             return 'NetworkError'
+        elif any(db_error.lower() in message_lower for db_error in database_error):
+            return 'DatabaseError'
+        
         
         
       
@@ -492,7 +493,7 @@ def network(request):
         if any(db_error.lower() in message_lower for db_error in network_error):
             return 'NetworkError'
         else:
-            return 'OtherError'
+            pass
  
     logs_df['error_type'] = logs_df['message'].apply(categorize_error)
     network_error_logs = logs_df[logs_df['error_type'] == 'NetworkError']
