@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Database related Errors</title>
 </head>
@@ -10,52 +11,115 @@
         margin: 0;
         padding: 0;
     }
+
     .container {
         padding: 20px;
     }
+
     table {
         width: 90%;
         margin: 50px auto;
         border-collapse: collapse;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    th, td {
+
+    th,
+    td {
         padding: 15px;
         text-align: left;
         border-bottom: 2px solid #ddd;
     }
+
     th {
         background-color: #4CAF50;
         color: white;
         font-size: 18px;
     }
+
     tr:nth-child(even) {
         background-color: #f9f9f9;
     }
+
     tr:hover {
         background-color: #f1f1f1;
     }
+
     nav {
-            background-color: #042208;
-            padding: 20px;
-            text-align: center;
-        }
-        nav,h1{
-            color: rgb(250, 246, 246);
-            font-weight: bolder;
-            font-size: 40px;
-        }
+        background-color: #042208;
+        padding: 20px;
+        text-align: center;
+    }
+
+    nav,
+    h1 {
+        color: rgb(250, 246, 246);
+        font-weight: bolder;
+        font-size: 40px;
+    }
+
+    .export-btn {
+        display: inline-block;
+        background-color: transparent;
+        /* Transparent background */
+        color: black;
+        /* Green text color */
+        padding: 12px 20px;
+        /* Padding to make it look good */
+        text-align: center;
+        /* Center the text */
+        text-decoration: none;
+        /* Remove underline */
+        font-size: 16px;
+        /* Larger font */
+        border: 2px solid #4CAF50;
+        /* Green border */
+        border-radius: 8px;
+        /* Rounded corners */
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        /* Smooth transition for hover effect */
+        margin: 10px 0;
+        /* Margin for spacing */
+    }
+
+    .export-btn:hover {
+        background-color: transparent;
+        /* Green background on hover */
+        color: green;
+        /* White text on hover */
+        transform: scale(1.05);
+        /* Slightly enlarge on hover */
+    }
+
+    /* Active effect when button is clicked */
+    .export-btn:active {
+        background-color: #388e3c;
+        /* Even darker green when active */
+        transform: scale(0.98);
+        /* Slightly shrink when clicked */
+    }
+
+    /* Focus effect for accessibility */
+    .export-btn:focus {
+        outline: none;
+        /* Remove the outline */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        /* Add a shadow effect on focus */
+    }
 </style>
 <nav>
     <h1>Database Errors</h1>
 </nav>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
 <body>
-    <h1>Database Errors</h1>
+
+    <a href="{% url 'export_error_logs_csv' error_type='DatabaseError' %}" class="export-btn"><i class="fa fa-download"></i> Export</a>
+
     <table>
         <tr>
             <th>Timestamp</th>
             <th>Source</th>
-            <th>Message ( Total messgae = {{ cnt   }} )</th>
+            <th>Message </th>
         </tr>
         {% for log in database_error_logs.itertuples %}
         <tr>
@@ -66,4 +130,5 @@
         {% endfor %}
     </table>
 </body>
+
 </html>

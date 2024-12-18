@@ -18,6 +18,10 @@ urlpatterns = [
    path('badrequest/', badrequest ,name='badrequest'),
    path('test/', test ,name='test'),
    path('criticall/', criticall ,name='criticall'),
+   path('export_logs/csv/<str:error_type>/', export_error_logs_csv, name='export_error_logs_csv'),
+   path('export_all_logs_csv/csv/all/', export_all_logs_csv, name='export_all_logs_csv'),
+
+   
    
 ]
 

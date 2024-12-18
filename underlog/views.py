@@ -11,7 +11,7 @@ from django.core.mail import send_mail
 import requests
 from datetime import datetime
 import re
-import matplotlib.dates as mdates
+import csv
 from django.core.mail.backends.smtp import EmailBackend
 matplotlib.use('Agg')
 csv_path = os.path.join(settings.BASE_DIR, 'underlog/static/logs/logs_come_after_every_5min.csv')
@@ -218,19 +218,23 @@ def show(request):
 
 
     def categorize_error(message):
+        
+        message_lower = str(message).lower()
         """Function to categorize error messages based on keywords."""
-        if 'timeout' in message.lower() or 'connection' in message.lower():
+        
+       
+        if any(db_error.lower() in message_lower for db_error in network_error):
             return 'NetworkError'
-        elif 'auth' in message.lower() or 'Authentication failed' in message.lower():
-            return 'AuthenticationError'
-        elif 'database' in message.lower() or 'db' in message.lower():
+        elif any(db_error.lower() in message_lower for db_error in database_error):
             return 'DatabaseError'
-        elif 'config' in message.lower() or 'missing' in message.lower() or 'invalid' in message.lower() or 'not found' in message.lower() or 'error loading config' in message.lower() or 'misconfigured' in message.lower():
+        elif any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
-        '''elif '400 bad request' in message.lower():
-            return 'ClientSideIssue'
+        elif any(db_error.lower() in message_lower for db_error in authentication_error):
+            return 'AuthenticationError'      
         else:
             return 'GeneralError'''
+
+    
         
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
@@ -399,18 +403,16 @@ def errorcategory(request):
         
         message_lower = str(message).lower()
         """Function to categorize error messages based on keywords."""
-        if any(db_error.lower() in message_lower for db_error in configuration_error):
-            return 'ConfigurationError'
-        elif any(db_error.lower() in message_lower for db_error in authentication_error):
-            return 'AuthenticationError'
-        elif any(db_error.lower() in message_lower for db_error in network_error):
+        
+       
+        if any(db_error.lower() in message_lower for db_error in network_error):
             return 'NetworkError'
         elif any(db_error.lower() in message_lower for db_error in database_error):
             return 'DatabaseError'
-        
-        
-        
-      
+        elif any(db_error.lower() in message_lower for db_error in configuration_error):
+            return 'ConfigurationError'
+        elif any(db_error.lower() in message_lower for db_error in authentication_error):
+            return 'AuthenticationError'      
         else:
             return 'GeneralError'''
 
@@ -427,34 +429,16 @@ def errorcategory(request):
     client_count = len(logs_df[logs_df['error_category'] == '404badrequest'])
 
     total = database_error_count + network_error_count + Auth_count + general_count + config_count + client_count
-
+######code that have top error message $$$$$$$$$$$$$$$$
     mylog = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
     top_error_messagess = mylog['message'].value_counts().head(10)
     top_error_messages_dict = top_error_messagess.to_dict()
 
-    def categorize_errors(logs_df):
-        """Apply the categorization function to each log entry."""
-        # Filter out logs containing 'error' keyword
-        error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-        
-        # Apply categorization to each error message
-        error_logs['error_type'] = error_logs['message'].apply(categorize_error)
-        
-        # Count occurrences of each error type
-        error_counts = error_logs['error_type'].value_counts()
-        
-        
-        return error_counts, error_logs
 
-    # Call the categorize function to get the error counts and categorized logs
-    error_counts, error_logs = categorize_errors(logs_df)
-
+    ######code that prints top message occurences$$$$$$$$$$$$$$$$$$$$
     logs_df['error_type'] = logs_df['message'].apply(categorize_error)
     error_counts = logs_df['error_type'].value_counts()
     plt.figure(figsize=(6, 6))  # Set the figure size
-    explode = [0.1 if count < 5 else 0 for count in error_counts]  # Adjust based on counts
-
-
     top_error_messages = logs_df['message'].value_counts().head(10)
 
     
@@ -498,15 +482,14 @@ def network(request):
     logs_df['error_type'] = logs_df['message'].apply(categorize_error)
     network_error_logs = logs_df[logs_df['error_type'] == 'NetworkError']
     cnt = len(network_error_logs)
-    #regex_pattern = '|'.join(map(re.escape, network_error))
     
-
-    #network_error_logs = logs_df[logs_df['message'].str.contains(regex_pattern, case=False, na=False)]
-    #cnt = len(network_error_logs)
+    
+  
     context = {
         'network_error_logs': network_error_logs,
         'cnt' : cnt
     }
+    
 
     
     return render(request, 'temp/network.html', context)
@@ -764,3 +747,75 @@ def criticall(request):
     
     
     return render(request, 'temp/criticall.html', context)
+
+def export_error_logs_csv(request, error_type):
+    # Read the logs CSV (or use the already filtered logs if they are passed in context)
+    logs_df = pd.read_csv(csv_path)
+
+    # Ensure the timestamp column is correctly parsed and localized
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
+
+    # Categorize the errors
+    def categorize_error(message):
+        message_lower = str(message).lower()
+        if any(db_error.lower() in message_lower for db_error in network_error):
+            return 'NetworkError'
+        elif any(db_error.lower() in message_lower for db_error in database_error):
+            return 'DatabaseError'
+        elif any(db_error.lower() in message_lower for db_error in authentication_error):
+            return 'AuthenticationError'
+        elif any(db_error.lower() in message_lower for db_error in configuration_error):
+            return 'ConfigurationError'
+        else:
+            return 'GeneralError'
+
+    # Apply the categorization function to each log message
+    logs_df['error_type'] = logs_df['message'].apply(categorize_error)
+
+    # Filter the logs based on the requested error category
+    error_logs = logs_df[logs_df['error_type'] == error_type]
+
+
+    # Convert to list of dicts for CSV export
+    logs = error_logs.to_dict('records')
+
+
+    if not logs:
+        return HttpResponse(f"No {error_type} logs to export.", status=400)
+
+    # Create a response object with CSV content type
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{error_type}_logs.csv"'
+
+    # Write data to CSV
+    writer = csv.writer(response)
+
+    # Write the header (column names) correctly as a list
+    writer.writerow(error_logs.columns.to_list())  # Convert columns to a list
+
+    # Write data rows
+    for log in logs:
+        writer.writerow(log.values())  # Write each log entry's values
+
+    return response
+
+def export_all_logs_csv(request):
+    # Read the entire logs DataFrame
+    logs_df = pd.read_csv(csv_path)  # Replace with your actual CSV path
+    
+    # Create a response object with CSV content type
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="all_logs.csv"'
+
+    # Create a CSV writer
+    writer = csv.writer(response)
+    
+    # Write the header (column names)
+    writer.writerow(logs_df.columns)
+    
+    # Write data rows
+    for log in logs_df.itertuples(index=False, name=None):  # Efficient way to iterate through rows
+        writer.writerow(log)
+    
+    return response

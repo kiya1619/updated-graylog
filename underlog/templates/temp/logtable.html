@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <html>
     <head>
         <style>
@@ -146,6 +147,54 @@
     margin-top: 20px;
     font-size: 20px;
 }
+.export-btn {
+        display: inline-block;
+        background-color: transparent;
+        /* Transparent background */
+        color: black;
+        /* Green text color */
+        padding: 12px 20px;
+        /* Padding to make it look good */
+        text-align: center;
+        /* Center the text */
+        text-decoration: none;
+        /* Remove underline */
+        font-size: 16px;
+        /* Larger font */
+        border: 2px solid #4CAF50;
+        /* Green border */
+        border-radius: 8px;
+        /* Rounded corners */
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        /* Smooth transition for hover effect */
+        margin: 10px 0;
+        /* Margin for spacing */
+    }
+
+    .export-btn:hover {
+        background-color: transparent;
+        /* Green background on hover */
+        color: green;
+        /* White text on hover */
+        transform: scale(1.05);
+        /* Slightly enlarge on hover */
+    }
+
+    /* Active effect when button is clicked */
+    .export-btn:active {
+        background-color: #388e3c;
+        /* Even darker green when active */
+        transform: scale(0.98);
+        /* Slightly shrink when clicked */
+    }
+
+    /* Focus effect for accessibility */
+    .export-btn:focus {
+        outline: none;
+        /* Remove the outline */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        /* Add a shadow effect on focus */
+    }
      </style>
         <title>Log Viewer</title>
     </head>
@@ -206,6 +255,8 @@
                 <button type="submit">Search</button>
             </form>
 </div>
+<a href="{% url 'export_all_logs_csv' %}" class="export-btn"><i class="fa fa-download"></i> Export All Logs</a>
+
             <!-- Log Table -->
             <table>
                 <thead>
