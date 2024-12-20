@@ -17,7 +17,7 @@ password = "admin@123"  # Replace with your Graylog password
 
 params = {
     "query": "*", 
-    "range": 100,  
+    "range": 3600,  
     "limit": '100000',  
     "fields": "timestamp,source, message"  
 }

@@ -12,7 +12,14 @@ import requests
 from datetime import datetime
 import re
 import csv
+import plotly.express as px
 from django.core.mail.backends.smtp import EmailBackend
+import kaleido
+import plotly.io as pio
+import plotly.graph_objects as go
+
+
+
 matplotlib.use('Agg')
 csv_path = os.path.join(settings.BASE_DIR, 'underlog/static/logs/logs_come_after_every_5min.csv')
 #csv_path_met = os.path.join(settings.BASE_DIR, 'underlog/static/logs/correlated_data.xlsx')
@@ -174,47 +181,48 @@ def show(request):
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
         
-#############all sources that contibute log##########3
+#############all sources that contibute log##########
     #error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
+    top_sources = logs_df['source'].value_counts().head(10).reset_index()
+    top_sources.columns = ['Source', 'Log Count']
+    
+    fig = px.bar(
+    top_sources,
+    x='Source',
+    y='Log Count',
+    title='Top 10 Sources Contributing to Logs',
+    text='Log Count',
+    color='Source',
+    color_continuous_scale='Blues'
+         )
+    fig.update_layout(
+    title_font_size=18,
+    xaxis_title='Source',
+    yaxis_title='Number of Logs',
+    xaxis_tickangle=45
+)
     top_sources = logs_df['source'].value_counts().head(10)
-    plt.figure(figsize=(10, 6))
-    top_sources.plot(kind='bar', color='skyblue', edgecolor='black')
-    plt.title('Top 10 Sources Contributing to Logs', fontsize=16)
-    plt.xlabel('Source', fontsize=14)
-    plt.ylabel('Number of log', fontsize=14)
-    plt.xticks(rotation=45, fontsize=12, ha='right')
-    plt.tight_layout()
 
-    # Save the chart as an image
-    plot_image_path1 = os.path.join(settings.BASE_DIR, 'underlog/static/images/top10.png')
-    plt.savefig(plot_image_path1)
-    plt.close()
+    fig = go.Figure(
+        data=[go.Bar(x=top_sources.index, y=top_sources.values, marker=dict(color='skyblue'))],
+        layout=go.Layout(
+            title='Top 10 Sources Contributing to Logs',
+            xaxis=dict(title='Source'),
+            yaxis=dict(title='Number of Logs'),
+        ),
+    )
 
-##################sources that have error log ##########################################
-    error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-    top_sources = error_logs['source'].value_counts().head(10)
-    plt.figure(figsize=(10, 6))
-    top_sources.plot(kind='bar', color='skyblue', edgecolor='black')
-    plt.title('Top 10 Sources Contributing to Error Logs', fontsize=16)
-    plt.xlabel('Source', fontsize=14)
-    plt.ylabel('Number of Errors', fontsize=14)
-    plt.xticks(rotation=45, fontsize=12, ha='right')
-    plt.tight_layout()
+    plot_div = pio.to_html(fig, full_html=False)
+    
 
-    # Save the chart as an image
-    plot_image_path1 = os.path.join(settings.BASE_DIR, 'underlog/static/images/toperror.png')
-    plt.savefig(plot_image_path1)
-    plt.close()
+
+#########################################################################################################
 
 
 
 
-##############################################################################
 
-    logs_df = logs_df.set_index('timestamp')
-    error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-    error_frequency = error_logs.resample('H').size()
-    error_frequency_sorted = error_frequency.sort_values(ascending=False)
+
 
 
     def categorize_error(message):
@@ -237,6 +245,97 @@ def show(request):
     
         
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
+    error_counts = logs_df['error_category'].value_counts()
+    ##########################################################################################
+    #                                                                                        #
+    #                                Error Category                                          #
+    #                                                                                        #
+    ##########################################################################################
+    fig = go.Figure(data=[go.Bar(
+    x=error_counts.index,  # Error categories
+    y=error_counts.values,  # Frequency of each error category
+    marker=dict(color='skyblue'),
+    )])
+
+    # Update the layout of the chart
+    fig.update_layout(
+        title="Error  Category",
+        xaxis_title="Error Type",
+        yaxis_title="Frequency",
+        xaxis_tickangle=45,
+        plot_bgcolor='white',  # Set plot background to white
+        paper_bgcolor='white',  # Set entire figure background to white
+        title_font_size=18,
+        xaxis_title_font_size=14,
+        yaxis_title_font_size=14,
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
+
+
+    # Convert the Plotly figure to HTML for embedding or rendering in your template
+    error_cat = pio.to_html(fig, full_html=False)
+    
+    
+    ##########################################################################################
+    #                                                                                        #
+    #                                log contibution for error                               #
+    #                                                                                        #
+    ##########################################################################################
+    
+    
+    
+    def contains_error_type(message):
+        """Check if a message contains any error keyword from the predefined sets."""
+        message_lower = str(message).lower()
+        if any(error.lower() in message_lower for error in database_error.union(network_error, authentication_error, configuration_error)):
+            return True
+        return False
+
+    # Filter the DataFrame for rows that contain errors
+    error_logs = logs_df[logs_df['message'].apply(contains_error_type)]
+
+    # Count the number of errors per source
+    errors_per_source = error_logs['source'].value_counts().head(10)
+
+    # Create a bar chart for errors per source
+    fig = go.Figure(
+        data=[go.Bar(x=errors_per_source.index, y=errors_per_source.values, marker=dict(color='skyblue'))],
+        layout=go.Layout(
+            title='Top 10 Sources Contributing to Errors',
+            xaxis=dict(title='Source'),
+            yaxis=dict(title='Number of Errors'),
+            xaxis_tickangle=-45
+        ),
+    )
+
+    # Convert the Plotly figure to HTML for rendering in the template
+    plot_div_source_errors = pio.to_html(fig, full_html=False)
+
+    ##########################################################################################
+    #                                                                                        #
+    #                       Error category in pie-chart                                      #
+    #                                                                                        #
+    ##########################################################################################
+    
+    fig = go.Figure(data=[go.Pie(
+    labels=error_counts.index,  # Error categories
+    values=error_counts.values,  # Frequency of each error category
+    marker=dict(colors=['skyblue', 'lightgreen', 'lightcoral', 'lightyellow', 'lightgray']),
+    hole=0.3  # Create a donut chart effect
+    )])
+
+    # Update the layout of the pie chart
+    fig.update_layout(
+        title="Error Categories Distribution",
+        title_font_size=18,
+        plot_bgcolor='white',  # Set plot background to white
+        paper_bgcolor='white',  # Set entire figure background to white
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
+
+    # Convert the figure to HTML for embedding or rendering in your template
+    pie_chart_html = pio.to_html(fig, full_html=False)
+   
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
     network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
     Auth_count = len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
@@ -244,131 +343,135 @@ def show(request):
     config_count = len(logs_df[logs_df['error_category'] == 'ConfigurationError'])
     client_count = len(logs_df[logs_df['error_category'] == 'ClientSideIssue'])
 
-    def categorize_errors(logs_df):
-        """Apply the categorization function to each log entry."""
-        # Filter out logs containing 'error' keyword
-        error_logs = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-        
-        # Apply categorization to each error message
-        error_logs['error_type'] = error_logs['message'].apply(categorize_error)
-        
-        # Count occurrences of each error type
-        error_counts = error_logs['error_type'].value_counts()
-        
-        return error_counts, error_logs
 
-    # Call the categorize function to get the error counts and categorized logs
-    error_counts, error_logs = categorize_errors(logs_df)
+    ##########################################################################################
+    #                                                                                        #
+    #                        Hourly Frequency of error logs                                  #
+    #                                                                                        #
+    ##########################################################################################
+                        
+    def categorizee_error(message):
+        
+        message_lower = str(message).lower()
+        """Function to categorize error messages based on keywords."""
+        
+       
+        if any(db_error.lower() in message_lower for db_error in network_error):
+            return 'NetworkError'
+        elif any(db_error.lower() in message_lower for db_error in database_error):
+            return 'DatabaseError'
+        elif any(db_error.lower() in message_lower for db_error in configuration_error):
+            return 'ConfigurationError'
+        elif any(db_error.lower() in message_lower for db_error in authentication_error):
+            return 'AuthenticationError'      
+        else:
+            return 'GeneralError'''
 
-    # Step 3: Plot the error types frequency
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x=error_counts.index, y=error_counts.values, palette='viridis')
-    plt.title("Error Types Frequency")
-    plt.xlabel("Error Type")
-    plt.ylabel("Frequency")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
     
-    # Save the plot image to the static directory
-    plot_image_path = os.path.join(settings.BASE_DIR, 'underlog/static/images/error_types_plot.png')
-    plt.savefig(plot_image_path)
-    #################################
-
-    logs_df['error_type'] = logs_df['message'].apply(categorize_error)
-    error_counts = logs_df['error_type'].value_counts()
-    plt.figure(figsize=(12, 6))  # Set the figure size
-    explode = [0.1 if count < 5 else 0 for count in error_counts]  # Adjust based on counts
-
-    error_counts.plot(
-        kind='pie',
-        autopct=lambda p: f'{p:.1f}%\n({int(p * sum(error_counts) / 100)})',  # Percent + counts
-        startangle=90,
-        explode=explode,
-        textprops={'fontsize': 12},  # Larger font for better readability
-        wedgeprops={'edgecolor': 'black'}   # Apply a color scheme
-    )
-    plt.title("Distribution of Error Types")
-    plt.ylabel("")  # Remove the y-label for a cleaner appearance
-    plt.legend(title="Error Types", loc="upper right", bbox_to_anchor=(1.3, 0.9), fontsize=10, title_fontsize=12)
-    plt.tight_layout()
-    # Save the pie chart as an image
-    error_types_plot_path = os.path.join(settings.BASE_DIR, 'underlog/static/images/error_types.png')
-    plt.savefig(error_types_plot_path)
-    plt.close()
-
-    ###########timely error########################
-
     logs_df = pd.read_csv(csv_path)
-    
+
     # Convert the 'timestamp' column to datetime
-    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
+
+    logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
+    logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
     # Filter only logs containing the word 'error'
-    error_logs_df = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
 
-    # Group by day and hour
-    error_logs_df['day_hour'] = error_logs_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
+    # Add a category column
+    logs_df['category'] = logs_df['message'].apply(categorizee_error)
 
-    # Count errors by day and hour
-    error_trends_day_hourly = error_logs_df.groupby('day_hour').size()
+# Debug: Check if all categories are being recognized
+    print("Category counts:")
+    print(logs_df['category'].value_counts())
 
-    # Plot the error counts by day and hour
-    plt.figure(figsize=(10, 6))
-    error_trends_day_hourly.plot(kind='line', marker='o')
-    plt.title("Error Trends by Day and Hour")
-    plt.xlabel("Date and Hour")
-    plt.ylabel("Error Count")
-    plt.xticks(rotation=45)
-    plt.grid(True)
+    # Filter logs with valid categories (optional: exclude GeneralError if desired)
+    categorized_logs_df = logs_df
 
-    # Save the plot as an image file in the 'static/images' folder
-    error_types_plot_path = os.path.join(settings.BASE_DIR, 'underlog/static/images/hourly_error.png')
-    plt.savefig(error_types_plot_path)
-    plt.close()
- 
- 
- 
-############################serverity level###################################################
-    severity_keywords = {
-    "Critical": ["critical", "fatal", "emergency"],
-    "High": ["high", "severe", "major"],
-    "Medium": ["medium", "moderate", "warning"],
-    "Low": ["low", "minor", "info", "notice"]
-    }
-    logs_df["severity"] = "Unknown"
-    for level, keywords in severity_keywords.items():
-        logs_df.loc[logs_df['message'].str.contains('|'.join(keywords), case=False, na=False), 'severity'] = level
-    severity_counts = logs_df['severity'].value_counts()
-    plt.figure(figsize=(8, 6))
-    severity_counts.plot(kind='bar', color=['red', 'orange', 'yellow', 'green', 'gray'], edgecolor='black')
-    plt.title('Log Distribution by Severity Level', fontsize=16)
-    plt.xlabel('Severity Level', fontsize=14)
-    plt.ylabel('Number of Logs', fontsize=14)
-    plt.xticks(rotation=45, fontsize=12, ha='center')
-    plt.tight_layout()
+    # Group by day, hour, and category
+    categorized_logs_df['day_hour'] = categorized_logs_df['timestamp'].dt.strftime('%Y-%m-%d %I:%M %p')
+    error_trends = categorized_logs_df.groupby(['day_hour', 'category']).size().unstack(fill_value=0)
 
-    # Save the chart as an image
-    severity_plot_path = os.path.join(settings.BASE_DIR, 'underlog/static/images/severity.png')
-    plt.savefig(severity_plot_path)
-    plt.close()
+    # Debug: Check the grouped data
+    print("Grouped data:")
+    print(error_trends.head())
+
+    # Create the Plotly figure
+    fig = go.Figure()
+
+    for category in error_trends.columns:
+        fig.add_trace(go.Scatter(
+            x=error_trends.index,
+            y=error_trends[category],
+            mode='lines+markers',
+            name=category
+        ))
+
+    # Update the layout
+    fig.update_layout(
+        title="Error Trends by Day and Hour (Categorized)",
+        xaxis=dict(title="Date and Hour", tickangle=45),
+        yaxis=dict(title="Error Count"),
+        showlegend=True,
+        template="plotly_dark"
+    )
+
+    # Check raw counts
+
     
 
 
 
+    # Convert the Plotly figure to HTML for embedding or rendering in your template
+    plot_html = pio.to_html(fig, full_html=False)
+    ##########################################################################################
+    #                                                                                        #
+    #                            Severity Distribution                                       #
+    #                                                                                        #
+    ##########################################################################################
+    severity_keywords = {
+        "Critical": ["critical", "fatal", "emergency"],
+        "High": ["high", "severe", "major"],
+        "Medium": ["medium", "moderate", "warning"],
+        "Low": ["low", "minor", "info", "notice"]
+    }   
 
+    def categorize_severity(message):
+        message_lower = str(message).lower()
+        for level, keywords in severity_keywords.items():
+            if any(keyword.lower() in message_lower for keyword in keywords):
+                return level
+        return "Unknown"  # Default if no keywords match
 
+    logs_df['severity'] = logs_df['message'].apply(categorize_severity)
+    severity_counts = logs_df['severity'].value_counts()
 
+    fig_severity = go.Figure(
+        data=[go.Bar(
+            x=severity_counts.index, 
+            y=severity_counts.values, 
+            marker=dict(color=['red', 'orange', 'yellow', 'green', 'gray']),
+            text=severity_counts.values, 
+            textposition='outside', 
+            hoverinfo='x+y+text'
+        )],
+        layout=go.Layout(
+            title="Log Distribution by Severity Level",
+            title_x=0.5,
+            title_font_size=16,
+            xaxis_title="Severity Level",
+            yaxis_title="Number of Logs",
+            xaxis=dict(tickangle=45),
+            margin=dict(l=0, r=0, t=50, b=50)
+        ),
+    )
+    plot_div_severity = pio.to_html(fig_severity, full_html=False)
 
-
-
-###############################################################################
 
 
     context = {
-        'error_counts': error_counts,  # Error type frequency counts
+        
         'plot_image': 'images/error_types_plot.png',
         'error_types_plot': 'images/error_types.png',  # Path to the saved plot
-        'error_logs': error_logs,  # Logs with categorized error types
         'database_error_count': database_error_count,
         'network_error_count' : network_error_count,
         'Auth_count' : Auth_count,
@@ -376,17 +479,22 @@ def show(request):
         'config_count' :config_count,
         'client_count': client_count,
         'ip_error_plot' : 'images/ip_error_plot.png',
-#moved from trend
-
+        'plot_div': plot_div,
+        'plot_div_source_errors':plot_div_source_errors,
+        'severity_counts' : severity_counts,
         'top_sources_plot': 'images/top10.png',
         'top_error_sources': 'images/toperror.png',
         'severity': 'images/severity.png',
         'error_frequency_plot': 'images/error_frequency.png',
         'severity_image': 'images/severity_distribution.png',
         'source_image': 'images/error_sources.png',
-        'error_frequency': error_frequency_sorted,
         'hourly_errorr':'images/hourly_error.png',
         'serverity_plot':'images/severity_chart.png',
+        'plot_div_severity':plot_div_severity,
+        'plot_html':plot_html,
+        'error_cat': error_cat,
+        'pie_chart_html':pie_chart_html,
+        #'plot_div_error_frequency':plot_div_error_frequency,
        
     }
     
@@ -708,12 +816,14 @@ def login(request):
 def source_cat(request):
     logs_df = pd.read_csv(csv_path)
 
-    source_counts = logs_df['source'].value_counts()
+    source_counts = logs_df['source'].value_counts()    
     top_sources = source_counts.head(10)
 
     context = {
 
-        'top_sources': top_sources
+        'top_sources': top_sources,
+
+        
     }
 
     return render(request, 'temp/source_cat.html', context)
