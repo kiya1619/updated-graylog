@@ -17,38 +17,51 @@ from django.core.mail.backends.smtp import EmailBackend
 import kaleido
 import plotly.io as pio
 import plotly.graph_objects as go
+from sqlalchemy import create_engine
+from urllib.parse import quote
 
+# PostgreSQL Configuration
+db_host = "localhost"
+db_name = "graylog"
+db_user = "postgres"
+db_password = quote("admin@123")
+engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}")
 
 
 matplotlib.use('Agg')
-csv_path = os.path.join(settings.BASE_DIR, 'underlog/static/logs/logs_come_after_every_5min.csv')
-#csv_path_met = os.path.join(settings.BASE_DIR, 'underlog/static/logs/correlated_data.xlsx')
-logs_df = pd.read_csv(csv_path)
+
+
 database_error = {
   "Access denied for user", "Access denied for user (using password: YES)", 
         "No database selected", "Unknown database", "Table already exists", 
         "Unknown table", "Unknown column", "Duplicate column name", "Duplicate key name", 
         "Duplicate entry for key", "You have an error in your SQL syntax", "Query was empty", 
-        "Not unique table/alias", "Invalid default value", "Invalid default value for column", 
+        "Not unique table/alias", "Invalid default value", "Invalid default value for column",
         "Too long column", "Too many columns", "Too many key parts", "Too many key parts specified", 
-        "Too many key parts in a table", "Invalid table name", "Index length too long", 
-        "Unknown character set", "Invalid time zone", "Invalid timezone conversion", 
+        "Too many key parts in a table", "Invalid table name", "Index length too long",   
+        "Unknown character set", "Invalid time zone", "Invalid timezone conversion",   
         "Error in your SQL syntax", "Column count doesn't match value count", "Can't open file", 
         "Invalid SQLSTATE", "No data", "Unknown table type", "Access denied to database", 
-        "Access denied to table", "Access denied to column", "Table doesn't exist", 
+        "Access denied to table", "Access denied to column", "Table doesn't exist",  
         "Can't create table", "Can't create database", "Invalid SQL statement", "Too many connections", 
-        "Connection is not available", "Data too long for column", "Value out of range", 
+        "Connection is not available", "Data too long for column", "Value out of range",
         "Invalid group function", "Incorrect number of arguments", "Incorrect table definition", 
-        "Index already exists", "Can't delete file", "Can't create index", "Invalid index", 
+        "Index already exists", "Can't delete file", "Can't create index", "Invalid index",   
         "Duplicate column", "Invalid key", "Foreign key constraint failure", "Key length too long", 
-        "Invalid key length", "Invalid foreign key constraint", "Duplicate foreign key", 
+        "Invalid key length", "Invalid foreign key constraint", "Duplicate foreign key",
         "Can't create foreign key", "Incorrect foreign key", "Invalid data source", "Invalid handler", 
-        "Incorrect syntax", "Invalid handle", "Access denied to stored procedure", 
+        "Incorrect syntax", "Invalid handle", "Access denied to stored procedure",
         "Stored procedure not found", "Invalid stored procedure", "Can't update stored procedure", 
-        "Permission denied for stored procedure", "Can't drop stored procedure", 
+        "Permission denied for stored procedure", "Can't drop stored procedure",
         "Can't create stored procedure", "Field not found", "Server shutdown", "Too many database connections", 
-        "Incorrect data source", "Invalid SQL statement", "Invalid privilege", 
-        "Cannot find row in given table", "Unknown column", "Unknown column in field list", "db"
+        "Incorrect data source", "Invalid SQL statement", "Invalid privilege",
+        "Cannot find row in given table", "Unknown column", "Unknown column in field list","Lock wait timeout exceeded",
+        "Deadlock found when trying to get lock", "Server gone away", "Too many open files", "Can't open table", 
+    "Cannot connect to MySQL server", "Table is read only", "Table is full",     "Host is blocked", "Can't allocate memory", "Access denied for user to database", 
+    "Query execution was interrupted", "Out of range value for column",     "Invalid connection string", "MySQL server has gone away (packet bigger than max allowed size)", 
+    "Invalid data type for column", "Check constraint violation", "Can't drop database", 
+    "Table already exists in the database", "Cannot update table",     "Lost connection to MySQL server during query", "Too many joins", "Unknown error", 
+    "No matching row in the table"
     
 }
 network_error = {
@@ -112,16 +125,20 @@ configuration_error = {
     "Application startup error due to configuration", "Resource allocation error in configuration"
 }
 
+database_error_regex = re.compile(r"(" + "|".join(map(re.escape, database_error)) + r")", re.IGNORECASE)
+network_error_regex = re.compile(r"(" + "|".join(map(re.escape, network_error)) + r")", re.IGNORECASE)
+authentication_error_regex = re.compile(r"(" + "|".join(map(re.escape, authentication_error)) + r")", re.IGNORECASE)
+configuration_error_regex = re.compile(r"(" + "|".join(map(re.escape, configuration_error)) + r")", re.IGNORECASE)
 
-
-
+query = "SELECT timestamp, source, message FROM logs"
+logs_df = pd.read_sql(query, engine)
 
 logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
 logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
 
 def logs(request):
-
-    logs_df = pd.read_csv(csv_path)
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     logs_df['number'] = range(1, len(logs_df) + 1)
     logs_df['server_name'] = logs_df['source'].apply(lambda x: "Icinga Server" if "hq-osm-t03" in str(x)  
         else ("Windows Server" if "HQ-ISM-T01" in str(x)  
@@ -174,7 +191,8 @@ def logs(request):
     return render(request, 'temp/logtable.html',  context)
     
 def show(request):
-    logs_df = pd.read_csv(csv_path) 
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
     logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     if logs_df['timestamp'].isnull().any():
@@ -368,7 +386,8 @@ def show(request):
             return 'GeneralError'''
 
     
-    logs_df = pd.read_csv(csv_path)
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
 
     # Convert the 'timestamp' column to datetime
 
@@ -501,18 +520,12 @@ def show(request):
     return render(request, 'temp/show.html', context)
 
 def errorcategory(request):
-
-    logs_df = pd.read_csv(csv_path)
-    
-    
-
-    # Step 2: Categorize errors
+    query = "SELECT * FROM logs"
+    logs_df = pd.read_sql(query, con=engine)
     def categorize_error(message):
-        
         message_lower = str(message).lower()
         """Function to categorize error messages based on keywords."""
         
-       
         if any(db_error.lower() in message_lower for db_error in network_error):
             return 'NetworkError'
         elif any(db_error.lower() in message_lower for db_error in database_error):
@@ -522,57 +535,47 @@ def errorcategory(request):
         elif any(db_error.lower() in message_lower for db_error in authentication_error):
             return 'AuthenticationError'      
         else:
-            return 'GeneralError'''
-
-    
-        
+            return 'GeneralError'
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
 
-
+    # Count errors by category
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
     network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
-    Auth_count = len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
+    auth_count = len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
     general_count = len(logs_df[logs_df['error_category'] == 'GeneralError'])
     config_count = len(logs_df[logs_df['error_category'] == 'ConfigurationError'])
     client_count = len(logs_df[logs_df['error_category'] == '404badrequest'])
 
-    total = database_error_count + network_error_count + Auth_count + general_count + config_count + client_count
-######code that have top error message $$$$$$$$$$$$$$$$
+    total = (database_error_count + network_error_count + auth_count +
+             general_count + config_count + client_count)
+
+    # Top error messages
     mylog = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-    top_error_messagess = mylog['message'].value_counts().head(10)
-    top_error_messages_dict = top_error_messagess.to_dict()
+    top_error_messages = mylog['message'].value_counts().head(10).to_dict()
 
-
-    ######code that prints top message occurences$$$$$$$$$$$$$$$$$$$$
-    logs_df['error_type'] = logs_df['message'].apply(categorize_error)
-    error_counts = logs_df['error_type'].value_counts()
-    plt.figure(figsize=(6, 6))  # Set the figure size
-    top_error_messages = logs_df['message'].value_counts().head(10)
-
-    
+    # Error occurrences for chart
+    error_counts = logs_df['error_category'].value_counts()
     context = {
-        'error_counts': error_counts,      
+        'error_counts': error_counts.to_dict(),
         'database_error_count': database_error_count,
-        'network_error_count' : network_error_count,
-        'Auth_count' : Auth_count,
-        'general_count' :general_count,
-        'config_count' :config_count,
-        'top_error_messages': top_error_messages,
+        'network_error_count': network_error_count,
+        'auth_count': auth_count,
+        'general_count': general_count,
+        'config_count': config_count,
         'client_count': client_count,
-        'top_error_messagess':top_error_messages_dict,
-        
- 
-        'total': total
- 
+        'top_error_messages': top_error_messages,
+        'total': total,
     }
+    
     
 
     # Return the response with data to the template
     return render(request, 'temp/errorcategory.html', context)
 
 def network(request):
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
 
-    logs_df = pd.read_csv(csv_path)
     if logs_df['timestamp'].isnull().any():
         print("Invalid timestamps found. Dropping these rows.")
         logs_df = logs_df.dropna(subset=['timestamp'])
@@ -590,9 +593,7 @@ def network(request):
     logs_df['error_type'] = logs_df['message'].apply(categorize_error)
     network_error_logs = logs_df[logs_df['error_type'] == 'NetworkError']
     cnt = len(network_error_logs)
-    
-    
-  
+
     context = {
         'network_error_logs': network_error_logs,
         'cnt' : cnt
@@ -603,7 +604,8 @@ def network(request):
     return render(request, 'temp/network.html', context)
 
 def database(request):
-    logs_df = pd.read_csv(csv_path)
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
     logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     if logs_df['timestamp'].isnull().any():
@@ -633,7 +635,8 @@ def database(request):
     return render(request, 'temp/database.html', context)
 
 def general(request):
-    logs_df = pd.read_csv(csv_path)
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
     logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
     def categorize_error(message):
@@ -653,6 +656,8 @@ def general(request):
     
 
     # Filter general errors (errors that are not network, authentication, or database-related)
+    logs_df['message'] = logs_df['message'].fillna('').astype(str)
+    
     general_error_logs = logs_df[logs_df['message'].apply(lambda msg: categorize_error(msg) == 'GeneralError')]
     general_error_logs['formatted_timestamp'] = general_error_logs['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -668,8 +673,8 @@ def general(request):
 
 def auth(request):
 
-    logs_df = pd.read_csv(csv_path)
-    
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)    
     # Ensure timestamp is properly formatted
     
     if logs_df['timestamp'].isnull().any():
@@ -694,9 +699,9 @@ def auth(request):
 def configuration(request):
 
 
-
-    logs_df = pd.read_csv(csv_path)
     
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)    
     # Ensure timestamp is properly formatted
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
     if logs_df['timestamp'].isnull().any():
@@ -723,8 +728,8 @@ def configuration(request):
     return render(request, 'temp/configuration.html', context)
     
 def badrequest(request):
-    logs_df = pd.read_csv(csv_path)
-    
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)    
     # Ensure timestamp is properly formatted
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
     if logs_df['timestamp'].isnull().any():
@@ -749,15 +754,7 @@ def badrequest(request):
                }
     return render(request, 'temp/badrequest.html', context)
 
-def send_telegram_message(bot_token, chat_id, message):
 
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    params = {
-        "chat_id": chat_id,
-        "text": message
-    }
-    response = requests.post(url, data=params)
-    return response.json()
 
 def send_email_view(request):
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
@@ -814,8 +811,8 @@ def login(request):
 
 
 def source_cat(request):
-    logs_df = pd.read_csv(csv_path)
-
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     source_counts = logs_df['source'].value_counts()    
     top_sources = source_counts.head(10)
 
@@ -860,8 +857,8 @@ def criticall(request):
 
 def export_error_logs_csv(request, error_type):
     # Read the logs CSV (or use the already filtered logs if they are passed in context)
-    logs_df = pd.read_csv(csv_path)
-
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)
     # Ensure the timestamp column is correctly parsed and localized
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
     logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
@@ -912,8 +909,8 @@ def export_error_logs_csv(request, error_type):
 
 def export_all_logs_csv(request):
     # Read the entire logs DataFrame
-    logs_df = pd.read_csv(csv_path)  # Replace with your actual CSV path
-    
+    query = "SELECT timestamp, source, message FROM logs"
+    logs_df = pd.read_sql(query, engine)    
     # Create a response object with CSV content type
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="all_logs.csv"'
