@@ -157,7 +157,7 @@
 
 
 
-        <a href="/show" class="styled-link">Visual</a>
+        <a href="/show" class="styled-link">Graphica</a>
         <a href="/logs" class="styled-link">ALL Logs</a>
         <a href="/errorcategory" class="styled-link">Error Category</a>
 
@@ -176,9 +176,10 @@
             
             <a href="/general" class="styled-link">General log <p class="red">({{ general_count }})</p></a>
             <a href="/network" class="styled-link">Network log <p class="red">({{ network_error_count }})</p></a>
-            <a href="/auth" class="styled-link">Authentication log <p class="red"> ({{ Auth_count }})</p></a>
+            <a href="/auth" class="styled-link">Authentication log <p class="red"> ({{ auth_count }})</p></a>
             <a href="/database" class="styled-link">Database log <p class="red"> ({{ database_error_count }})</p></a>
             <a href="/configuration" class="styled-link">Config log <p class="red">({{ config_count }})</p></a>
+            <a href="/Diskspaceerror  " class="styled-link">Disk Space  <p class="red">({{ space_error }})</p></a>
 
 
         </div>
@@ -230,22 +231,9 @@
 
         <table>
             <thead>
-                <tr>
-                    <th>Occurrences</th>
-                    <th>Error Message</th>
-                </tr>
+               
             </thead>
-            <tbody>
-                {% for message, count in top_error_messagess.items %}
-                <tr>
-                    <td>{{ count }}</td>
-                    <td class="message-cell">{{ message }}</td>
-
-
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+           
 
     </div>
 

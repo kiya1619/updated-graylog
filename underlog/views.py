@@ -14,7 +14,6 @@ import re
 import csv
 import plotly.express as px
 from django.core.mail.backends.smtp import EmailBackend
-import kaleido
 import plotly.io as pio
 import plotly.graph_objects as go
 from sqlalchemy import create_engine
@@ -24,7 +23,7 @@ from urllib.parse import quote
 db_host = "localhost"
 db_name = "graylog"
 db_user = "postgres"
-db_password = quote("admin@123")
+db_password = quote("admin123")
 engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}")
 
 
@@ -124,7 +123,23 @@ configuration_error = {
     "Configuration not found", "Configuration file read-only", "Database configuration error",
     "Application startup error due to configuration", "Resource allocation error in configuration"
 }
-
+disk_space_error = {
+    "No space left on device", "Disk quota exceeded", "File system full", 
+    "Failed to allocate memory", "Unable to write to disk", "Out of disk space", 
+    "Disk write failed", "Disk is read-only", "I/O error", 
+    "Insufficient storage available", "File too large", "Partition full", 
+    "Unable to extend partition", "Temporary directory full", "Quota exceeded for user", 
+    "Cannot create file, out of space", "Cannot open file, disk full", 
+    "Device not ready", "Drive not accessible", "Disk error on write", 
+    "Volume is full", "Write error on device", "Error writing to disk", 
+    "Filesystem too large", "Directory entry full", "Swap space exhausted", 
+    "Disk buffer overflow", "Maximum file size reached", "Disk threshold exceeded", 
+    "Filesystem corrupt", "Insufficient disk resources", "Cannot save file", 
+    "File system not mounted", "Disk unavailable", "Write cache full", 
+    "Out of inodes", "Cannot allocate block", "Block allocation failed", 
+    "Metadata space exhausted", "Disk resource busy", "File allocation table full",
+    'error opening new segment file for wal'
+}
 database_error_regex = re.compile(r"(" + "|".join(map(re.escape, database_error)) + r")", re.IGNORECASE)
 network_error_regex = re.compile(r"(" + "|".join(map(re.escape, network_error)) + r")", re.IGNORECASE)
 authentication_error_regex = re.compile(r"(" + "|".join(map(re.escape, authentication_error)) + r")", re.IGNORECASE)
@@ -144,8 +159,9 @@ def logs(request):
         else ("Windows Server" if "HQ-ISM-T01" in str(x)  
           else ("Graylog Server" if "hq-glg-t01" in str(x) 
                     else ("tsegaye" if "ITSMCC_PC08" in str(x)
+                          else('Mohammednur pc' if "ISMD-ISMCCD-MA.awash.local" in str(x)
                       else "") 
-           )))
+           ))))
 
     
     search_source = request.GET.get('source', None)
@@ -256,7 +272,11 @@ def show(request):
         elif any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
         elif any(db_error.lower() in message_lower for db_error in authentication_error):
-            return 'AuthenticationError'      
+            return 'AuthenticationError'
+        elif any(db_error.lower() in message_lower for db_error in disk_space_error):
+            return 'Diskspaceerror'
+
+              
         else:
             return 'GeneralError'''
 
@@ -305,7 +325,7 @@ def show(request):
     def contains_error_type(message):
         """Check if a message contains any error keyword from the predefined sets."""
         message_lower = str(message).lower()
-        if any(error.lower() in message_lower for error in database_error.union(network_error, authentication_error, configuration_error)):
+        if any(error.lower() in message_lower for error in database_error.union(network_error, authentication_error, configuration_error, disk_space_error)):
             return True
         return False
 
@@ -354,12 +374,7 @@ def show(request):
     # Convert the figure to HTML for embedding or rendering in your template
     pie_chart_html = pio.to_html(fig, full_html=False)
    
-    database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
-    network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
-    Auth_count = len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
-    general_count = len(logs_df[logs_df['error_category'] == 'GeneralError'])
-    config_count = len(logs_df[logs_df['error_category'] == 'ConfigurationError'])
-    client_count = len(logs_df[logs_df['error_category'] == 'ClientSideIssue'])
+
 
 
     ##########################################################################################
@@ -381,7 +396,9 @@ def show(request):
         elif any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
         elif any(db_error.lower() in message_lower for db_error in authentication_error):
-            return 'AuthenticationError'      
+            return 'AuthenticationError' 
+        elif any(db_error.lower() in message_lower for db_error in disk_space_error):
+            return 'Diskspaceerror'     
         else:
             return 'GeneralError'''
 
@@ -468,7 +485,7 @@ def show(request):
         data=[go.Bar(
             x=severity_counts.index, 
             y=severity_counts.values, 
-            marker=dict(color=['red', 'orange', 'yellow', 'green', 'gray']),
+            marker=dict(color=['gray', 'orange', 'yellow', 'green', 'red']),
             text=severity_counts.values, 
             textposition='outside', 
             hoverinfo='x+y+text'
@@ -491,12 +508,7 @@ def show(request):
         
         'plot_image': 'images/error_types_plot.png',
         'error_types_plot': 'images/error_types.png',  # Path to the saved plot
-        'database_error_count': database_error_count,
-        'network_error_count' : network_error_count,
-        'Auth_count' : Auth_count,
-        'general_count' :general_count,
-        'config_count' :config_count,
-        'client_count': client_count,
+ 
         'ip_error_plot' : 'images/ip_error_plot.png',
         'plot_div': plot_div,
         'plot_div_source_errors':plot_div_source_errors,
@@ -533,25 +545,43 @@ def errorcategory(request):
         elif any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
         elif any(db_error.lower() in message_lower for db_error in authentication_error):
-            return 'AuthenticationError'      
+            return 'AuthenticationError'  
+        elif any(db_error.lower() in message_lower for db_error in disk_space_error):
+            return 'Diskspaceerror'      
         else:
             return 'GeneralError'
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
 
-    # Count errors by category
+    # Count errors
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
     network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
-    auth_count = len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
+    auth_count =          len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
     general_count = len(logs_df[logs_df['error_category'] == 'GeneralError'])
     config_count = len(logs_df[logs_df['error_category'] == 'ConfigurationError'])
     client_count = len(logs_df[logs_df['error_category'] == '404badrequest'])
+    space_error = len(logs_df[logs_df['error_category'] == 'Diskspaceerror'])
 
     total = (database_error_count + network_error_count + auth_count +
-             general_count + config_count + client_count)
+             general_count + config_count + client_count + space_error)
 
-    # Top error messages
-    mylog = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
-    top_error_messages = mylog['message'].value_counts().head(10).to_dict()
+    def normalize_message(message):
+        """Normalize log messages by removing dynamic parts like timestamps and IDs."""
+        # Remove timestamps (e.g., 2024-12-31T08:39:47.346514Z)
+        message = re.sub(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z', '', message)
+        # Remove log IDs (e.g., log_id=0tijknY0000)
+        message = re.sub(r'log_id=[\w\d]+', '', message)
+        # Remove file paths or WAL segment references
+        message = re.sub(r'/[\w/._]+', '', message)
+        # Remove other numbers or dynamic segments (optional)
+        message = re.sub(r'\d+', '', message)
+        return message.strip()
+    logs_df['normalized_message'] = logs_df['message'].apply(normalize_message)
+    top_error_messages = logs_df['normalized_message'].value_counts().head(10).to_dict()
+
+
+   
+    
+
 
     # Error occurrences for chart
     error_counts = logs_df['error_category'].value_counts()
@@ -563,6 +593,7 @@ def errorcategory(request):
         'general_count': general_count,
         'config_count': config_count,
         'client_count': client_count,
+        'space_error': space_error,
         'top_error_messages': top_error_messages,
         'total': total,
     }
@@ -727,7 +758,7 @@ def configuration(request):
                }
     return render(request, 'temp/configuration.html', context)
     
-def badrequest(request):
+def Diskspaceerror(request):
     query = "SELECT timestamp, source, message FROM logs"
     logs_df = pd.read_sql(query, engine)    
     # Ensure timestamp is properly formatted
@@ -736,27 +767,29 @@ def badrequest(request):
         logs_df = logs_df.dropna(subset=['timestamp'])
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce', utc=True)
     logs_df['timestamp'] = logs_df['timestamp'].dt.tz_convert('Africa/Addis_Ababa').dt.tz_localize(None)
+    regex_pattern = '|'.join(map(re.escape, disk_space_error))
 
-    badrequest = logs_df[logs_df['message'].str.contains('400 bad request', case=False, na=False)]
-    cnt = len(badrequest)
-    errortype = '400 bad request'
+    space_error = logs_df[logs_df['message'].str.contains(regex_pattern, case=False, na=False)]
+    cnt = len(space_error) 
+    
 
-    #rare error logs
    
     
 
     # Render database error template
-    context = {'badrequest': badrequest,
+    context = {'space_error': space_error,
                'cnt':cnt,
-               'errortype':errortype
+        
        
                
                }
-    return render(request, 'temp/badrequest.html', context)
+    return render(request, 'temp/space_error.html', context)
 
 
-
+import ssl
 def send_email_view(request):
+    ssl._create_default_https_context = ssl._create_unverified_context
+
     logs_df['timestamp'] = pd.to_datetime(logs_df['timestamp'], errors='coerce')
 
     error_logs_df = logs_df[logs_df['message'].str.contains('error', case=False, na=False)]
@@ -874,6 +907,8 @@ def export_error_logs_csv(request, error_type):
             return 'AuthenticationError'
         elif any(db_error.lower() in message_lower for db_error in configuration_error):
             return 'ConfigurationError'
+        elif any(db_error.lower() in message_lower for db_error in disk_space_error):
+            return 'Diskspaceerror'
         else:
             return 'GeneralError'
 

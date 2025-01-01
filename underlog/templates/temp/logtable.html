@@ -45,8 +45,9 @@
             table {
                 width: 90%;
                 margin: 50px auto;
-                border-collapse: collapse;
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                display: block;
+                overflow-x: auto;
             }
             th, td {
                 padding: 15px;
@@ -207,9 +208,8 @@
 
         <!-- Navigation Bar -->
         <nav>
-            <a href="/show" class="styled-link">Visual</a>
+            <a href="/show" class="styled-link">Graphica</a>
             <a href="/errorcategory" class="styled-link">Error Category</a>
-            <a href="/send_email_view" class="styled-link">Send Email</a>
             <a href="/source_cat" class="styled-link">Source Category</a>
         </nav>
 
@@ -217,19 +217,6 @@
         <div class="container">
             <p>Total log = {{ cnt }}</p>
 
-            <!-- Search Form 
-            <div class="search-form">
-                <form method="get" action="">
-                    <label for="source">Filter by Source:</label>
-                    <select name="source" id="source">
-                        <option value="">-- All Sources --</option>
-                        <option value="hq-osm-t03" {% if search_source == 'hq-osm-t03' %}selected{% endif %}>Icinga Server</option>
-                        <option value="HQ-ISM-T01" {% if search_source == 'HQ-ISM-T01' %}selected{% endif %}>Windows Server</option>
-                        <option value="hq9-glg-t01" {% if search_source == 'hq9-glg-t01' %}selected{% endif %}>Graylog Server</option>
-                    </select>
-                    <button type="submit">Search</button>
-                </form>
-            </div>-->
             <div class="search-form">
             <form method="get" action="">
                 <!-- Source Filter -->
@@ -242,6 +229,7 @@
                     <option value="hq-glg-t01" {% if search_source == 'hq-glg-t01' %}selected{% endif %}>Graylog Server</option>
                     <option value="infdir_nm_pc09" {% if search_source == 'infdir_nm_pc09' %}selected{% endif %}>Abdisa Windows</option>
                     <option value="ITSMCC_PC08" {% if search_source == 'itsmcc-pc06' %}selected{% endif %}>Tsegaye Windows</option>
+                    <option value="ISMD-ISMCCD-MA.awash.local" {% if search_source == 'ISMD-ISMCCD-MA.awash.local	' %}selected{% endif %}>Mohammednur pc</option>
                     
                 </select>
             

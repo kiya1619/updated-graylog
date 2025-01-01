@@ -82,15 +82,16 @@ TEMPLATES = [
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'mail.awashbank.com'
 EMAIL_PORT = 587  # or 587 for TLS
 #EMAIL_USE_SSL = True  # SSL encryption
 EMAIL_USE_TLS = True  # Don't use TLS if using SSL
-EMAIL_HOST_USER = 'abdisaworkmail@gmail.com'
-EMAIL_HOST_PASSWORD = 'evmx tapc efix rhzm'
-DEFAULT_FROM_EMAIL = 'abdisaworkmail@gmail.com'
+EMAIL_HOST_USER = 'abdisash@awashbank.com'
+EMAIL_HOST_PASSWORD = '@bdisaShibru'
+DEFAULT_FROM_EMAIL = 'abdisash@awashbank.com'
 #WSGI_APPLICATION = 'logs.wsgi.application'
 
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 
