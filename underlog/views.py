@@ -552,7 +552,7 @@ def errorcategory(request):
             return 'GeneralError'
     logs_df['error_category'] = logs_df['message'].apply(categorize_error)
 
-    # Count errors
+    # COUNT THE SAME ERRORS #
     database_error_count = len(logs_df[logs_df['error_category'] == 'DatabaseError'])
     network_error_count = len(logs_df[logs_df['error_category'] == 'NetworkError'])
     auth_count =          len(logs_df[logs_df['error_category'] == 'AuthenticationError'])
@@ -967,3 +967,6 @@ def export_all_logs_csv(request):
         writer.writerow(log)
     
     return response
+
+def new(request):
+    pass
