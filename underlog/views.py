@@ -23,7 +23,7 @@ from urllib.parse import quote
 db_host = "localhost"
 db_name = "graylog"
 db_user = "postgres"
-db_password = quote("admin123")
+db_password = quote("admin@123")
 engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}")
 
 
@@ -485,7 +485,7 @@ def show(request):
         data=[go.Bar(
             x=severity_counts.index, 
             y=severity_counts.values, 
-            marker=dict(color=['gray', 'orange', 'yellow', 'green', 'red']),
+            marker=dict(color=['gray', 'orange', 'red', 'green', 'yellow']),
             text=severity_counts.values, 
             textposition='outside', 
             hoverinfo='x+y+text'
@@ -576,7 +576,13 @@ def errorcategory(request):
         message = re.sub(r'\d+', '', message)
         return message.strip()
     logs_df['normalized_message'] = logs_df['message'].apply(normalize_message)
-    top_error_messages = logs_df['normalized_message'].value_counts().head(10).to_dict()
+    normalized_counts = logs_df['normalized_message'].value_counts().head(10)
+    mapping = logs_df.groupby('normalized_message')['message'].first().to_dict()
+
+    top_error_messages = [
+    {'original': mapping[normalized], 'normalized': normalized, 'count': count}
+    for normalized, count in normalized_counts.items()
+]
 
 
    

@@ -210,22 +210,16 @@
         <!-- Top Error Messages Table -->
         <h3>Top occurrence Messages</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>Occurrences</th>
-                    <th> Message</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for message, count in top_error_messages.items %}
-                <tr>
-                    <td>{{ count }}</td>
-                    <td class="message-cell">{{ message }}</td>
-
-
-                </tr>
-                {% endfor %}
-            </tbody>
+            <tr>
+                <th>Count</th>
+                <th>Original Message</th>
+            </tr>
+            {% for error in top_error_messages %}
+            <tr>
+                <td>{{ error.count }}</td>
+                <td class="message-cell">{{ error.original }}</td>
+            </tr>
+            {% endfor %}
         </table>
         <!-- second table that has error log occurence -->
 

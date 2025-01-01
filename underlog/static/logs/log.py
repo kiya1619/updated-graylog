@@ -25,7 +25,7 @@ password = "admin@123"  # Replace with your Graylog password
 db_host = "localhost"
 db_name = "graylog"
 db_user = "postgres"
-db_password = "admin123"
+db_password = quote("admin@123")
 
 # Fetch logs from Graylog
 params = {
