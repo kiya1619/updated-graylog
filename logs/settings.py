@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-toj$&afijwsr48b^^@9f@7^t8mllz22d(b1l76*2j$k!xkbz!%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['']
+ALLOWED_HOSTS = ['127.0.0.1']
 
 
 # Application definition
@@ -81,14 +81,14 @@ TEMPLATES = [
 
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+'''EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = ''
 EMAIL_PORT =   # or 587 for TLS
 #EMAIL_USE_SSL = True  # SSL encryption
 EMAIL_USE_TLS = True  # Don't use TLS if using SSL
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
-DEFAULT_FROM_EMAIL = ''
+DEFAULT_FROM_EMAIL = '''''
 #WSGI_APPLICATION = 'logs.wsgi.application'
 
 ssl._create_default_https_context = ssl._create_unverified_context

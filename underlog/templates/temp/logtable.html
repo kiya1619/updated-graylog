@@ -25,7 +25,7 @@
             }
             /* Navigation bar styles */
             nav {
-                background-color: #444;
+                background-color:white;
                 display: flex;
                 justify-content: center;
                 padding: 10px;
@@ -196,18 +196,24 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
         /* Add a shadow effect on focus */
     }
+    .logo-link img {
+    height: 0px; /* Adjust the size of the logo */
+    margin-right: 20px; /* Adjust space between the logo and links */
+}
+
      </style>
         <title>Log Viewer</title>
     </head>
     {% load static %}
     <body>
         <!-- Header Section -->
-        <header>
-            <h1>Log Viewer</h1>
-        </header>
+       
 
         <!-- Navigation Bar -->
         <nav>
+            <a href="/" class="logo-link">
+                <img src="{% static 'images/awww.jpg' %}" alt="Logo" class="logo">
+            </a>
             <a href="/show" class="styled-link">Graphica</a>
             <a href="/errorcategory" class="styled-link">Error Category</a>
             <a href="/source_cat" class="styled-link">Source Category</a>

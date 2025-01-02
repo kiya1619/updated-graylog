@@ -29,6 +29,14 @@ engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}/{db_name
 
 matplotlib.use('Agg')
 
+server_names = {
+        'hq-osm-t03': 'Icinga Server',
+        'hq-glg-t01': 'Graylog Server',
+        'ITSMCC_PC08': 'Tsegaye PC',
+        'ISMD-ISMCCD-MA.awash.local': 'Mohammednur pc',
+        'INFDIR_NM_PC09' : 'Abdisa Window',
+        "Windows Server" : "HQ-ISM-T01",
+    }
 
 database_error = {
   "Access denied for user", "Access denied for user (using password: YES)", 
@@ -160,7 +168,8 @@ def logs(request):
           else ("Graylog Server" if "hq-glg-t01" in str(x) 
                     else ("tsegaye" if "ITSMCC_PC08" in str(x)
                           else('Mohammednur pc' if "ISMD-ISMCCD-MA.awash.local" in str(x)
-                      else "") 
+                               else('Abdisa window' if 'INFDIR_NM_PC09' in str(x)
+                      else "") )
            ))))
 
     
@@ -852,14 +861,22 @@ def login(request):
 def source_cat(request):
     query = "SELECT timestamp, source, message FROM logs"
     logs_df = pd.read_sql(query, engine)
-    source_counts = logs_df['source'].value_counts()    
+
+    # Count occurrences of each source
+    source_counts = logs_df['source'].value_counts()
     top_sources = source_counts.head(10)
 
+    # Map source names to descriptions
+    
+
+    # Create a DataFrame with mapped names for better visualization
+    top_sources_df = top_sources.reset_index()
+    top_sources_df.columns = ['source', 'count']
+    top_sources_df['description'] = top_sources_df['source'].map(server_names).fillna('Unknown')
+
+    # Pass data to the template
     context = {
-
-        'top_sources': top_sources,
-
-        
+        'top_sources': top_sources_df.to_dict(orient='records'),  # Convert to a list of dictionaries
     }
 
     return render(request, 'temp/source_cat.html', context)
@@ -967,6 +984,3 @@ def export_all_logs_csv(request):
         writer.writerow(log)
     
     return response
-
-def new(request):
-    pass

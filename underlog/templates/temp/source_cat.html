@@ -115,16 +115,18 @@
         <thead>
             <tr>
                 <th>Source</th>
-                <th>Count</th>
+                <th>Server name</th>
+                <th>count</th>
             </tr>
         </thead>
         <tbody>
-            {% for source, count in top_sources.items %}
-            <tr>
-                <td>{{ source }}</td>
-                <td>{{ count }}</td>
-            </tr>
-            {% endfor %}
+            {% for source in top_sources %}
+        <tr>
+            <td>{{ source.source }}</td>
+            <td>{{ source.description }}</td>
+            <td>{{ source.count }}</td>
+        </tr>
+        {% endfor %}
 
 
         </tbody>
